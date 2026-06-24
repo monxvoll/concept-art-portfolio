@@ -21,7 +21,19 @@ export class Collage {
             img.className = 'collage__image';
             img.loading = 'lazy'; // Native lazy loading
 
+            // Create overlay container
+            const overlay = document.createElement('div');
+            overlay.className = 'collage__overlay';
+
+            // Create title
+            const title = document.createElement('h3');
+            title.className = 'collage__title';
+            title.textContent = art.title;
+
+            // Assemble the puzzle
+            overlay.appendChild(title);
             item.appendChild(img);
+            item.appendChild(overlay);
             this.container.appendChild(item);
         });
     }
