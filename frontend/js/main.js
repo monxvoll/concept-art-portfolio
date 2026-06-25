@@ -17,6 +17,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // Execute rendering
     collage.render();
 
+    // Check URL for deep linking
+    const urlParams = new URLSearchParams(window.location.search);
+    const obraSlug = urlParams.get('obra');
+    if (obraSlug) {
+        const targetArt = artworks.find(a => a.slug === obraSlug);
+        if (targetArt) {
+            // Open without pushing state again since it's already in the URL
+            modal.open(targetArt, false);
+        }
+    }
+
+    // Handle browser Back/Forward buttons (popstate)
+    window.addEventListener('popstate', () => {
+        const params = new URLSearchParams(window.location.search);
+        const slug = params.get('obra');
+
+        if (slug) {
+            const targetArt = artworks.find(a => a.slug === slug);
+            if (targetArt) {
+                modal.open(targetArt, false);
+            }
+        } else {
+            // No slug means we went back to the root gallery
+            modal.close(false);
+        }
+    });
+
     // Back to top button logic
     const backToTopBtn = document.getElementById('back-to-top');
 

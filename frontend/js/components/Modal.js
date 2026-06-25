@@ -11,7 +11,11 @@ export class Modal {
         this.modal = document.getElementById('artwork-modal');
         this.overlay = document.getElementById('modal-overlay');
         this.closeBtn = document.getElementById('modal-close');
-        
+
+        // Share elements
+        this.shareBtn = document.getElementById('modal-share');
+        this.shareText = document.getElementById('modal-share-text');
+
         // Navigation arrows
         this.prevBtn = document.getElementById('modal-prev');
         this.nextBtn = document.getElementById('modal-next');
@@ -32,16 +36,32 @@ export class Modal {
 
     initEvents() {
         // --- Base Modal Events ---
-        
+
         // Close modal when X is clicked
         this.closeBtn.addEventListener('click', () => this.close());
-        
+
         // Close modal when clicking outside the content (on the overlay)
         this.overlay.addEventListener('click', () => this.close());
 
+        // Share button click
+        this.shareBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                this.shareBtn.classList.add('success');
+                this.shareText.classList.remove('hidden');
+
+                // Hide success state after 1 second
+                setTimeout(() => {
+                    this.shareBtn.classList.remove('success');
+                    this.shareText.classList.add('hidden');
+                }, 1000);
+            }).catch(err => {
+                console.error('Failed to copy link: ', err);
+            });
+        });
+
         // Arrow clicks
         this.prevBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent bubbling up and closing the modal
+            e.stopPropagation();
             this.prev();
         });
 
@@ -51,40 +71,26 @@ export class Modal {
         });
 
         // --- Fullscreen Events ---
-        
-        // Open fullscreen when clicking the image in the modal
-        this.image.addEventListener('click', () => {
-            this.openFullscreen();
-        });
-
-        // Close fullscreen when X is clicked
-        this.fullscreenCloseBtn.addEventListener('click', () => {
-            this.closeFullscreen();
-        });
-
-        // Close fullscreen if user clicks the dark background
+        this.image.addEventListener('click', () => this.openFullscreen());
+        this.fullscreenCloseBtn.addEventListener('click', () => this.closeFullscreen());
         this.fullscreenView.addEventListener('click', (e) => {
-            if (e.target === this.fullscreenView) {
-                this.closeFullscreen();
-            }
+            if (e.target === this.fullscreenView) this.closeFullscreen();
         });
 
         // --- Keyboard Events ---
         document.addEventListener('keydown', (e) => {
+            if (this.modal.classList.contains('hidden')) return;
+
             if (e.key === 'Escape') {
-                // If fullscreen is open, close ONLY the fullscreen
                 if (!this.fullscreenView.classList.contains('hidden')) {
                     this.closeFullscreen();
                     return;
                 }
-                
-                // If modal is open, close the modal
                 if (!this.modal.classList.contains('hidden')) {
                     this.close();
                 }
             }
 
-            // Carousel navigation (only if modal is open AND fullscreen is NOT open)
             if (!this.modal.classList.contains('hidden') && this.fullscreenView.classList.contains('hidden')) {
                 if (e.key === 'ArrowLeft') this.prev();
                 if (e.key === 'ArrowRight') this.next();
@@ -94,40 +100,35 @@ export class Modal {
 
     /**
      * @param {Object} artwork 
+     * @param {boolean} pushHistory - Whether to push a new state to browser history
      */
-    open(artwork) {
-        // Find if this artwork belongs to a project
+    open(artwork, pushHistory = true) {
         if (artwork.project) {
-            // Group all artworks from the same project
             this.currentProjectGroup = this.artworks.filter(a => a.project === artwork.project);
-            // Find current index in this group
             this.currentIndex = this.currentProjectGroup.findIndex(a => a.id === artwork.id);
         } else {
-            // It's a standalone artwork, group is just itself
             this.currentProjectGroup = [artwork];
             this.currentIndex = 0;
         }
 
-        this.updateUI();
-
-        // Prevent body scroll so user doesn't scroll the gallery behind the modal
+        this.updateUI(pushHistory);
         document.body.style.overflow = 'hidden';
-
-        // Show modal
         this.modal.classList.remove('hidden');
     }
 
-    updateUI() {
+    /**
+     * @param {boolean} pushHistory 
+     */
+    updateUI(pushHistory = true) {
         const currentArt = this.currentProjectGroup[this.currentIndex];
 
-        // Populate data
+        // Draw the artwork on the modal 
         this.image.src = currentArt.image_url;
         this.image.alt = currentArt.title;
         this.title.textContent = currentArt.title;
         this.category.textContent = currentArt.category;
         this.description.textContent = currentArt.description;
 
-        // Manage arrows visibility
         if (this.currentProjectGroup.length > 1) {
             this.prevBtn.classList.remove('hidden');
             this.nextBtn.classList.remove('hidden');
@@ -135,54 +136,52 @@ export class Modal {
             this.prevBtn.classList.add('hidden');
             this.nextBtn.classList.add('hidden');
         }
+
+        // Update browser URL
+        if (pushHistory) {
+            const newUrl = window.location.pathname + '?obra=' + currentArt.slug;
+            window.history.pushState({ slug: currentArt.slug }, '', newUrl);
+        }
     }
 
     next() {
         if (this.currentProjectGroup.length <= 1) return;
-        // Move to next, loop back to 0 if at the end
         this.currentIndex = (this.currentIndex + 1) % this.currentProjectGroup.length;
         this.updateUI();
     }
 
     prev() {
         if (this.currentProjectGroup.length <= 1) return;
-        // Move to prev, loop back to end if at the beginning
         this.currentIndex = (this.currentIndex - 1 + this.currentProjectGroup.length) % this.currentProjectGroup.length;
         this.updateUI();
     }
 
-    close() {
-        // Hide modal
+    close(pushHistory = true) {
         this.modal.classList.add('hidden');
-
-        // Restore body scroll
         document.body.style.overflow = 'auto';
 
-        // Clear image to prevent seeing old image momentarily on next open
+        // Clean up URL if we are closing normally (not via back button)
+        if (pushHistory) {
+            window.history.pushState(null, '', window.location.pathname);
+        }
+
         setTimeout(() => {
             this.image.src = '';
             this.currentProjectGroup = [];
             this.currentIndex = 0;
-        }, 400); // Wait for CSS transition (0.4s) to finish
+        }, 400);
     }
 
-    // --- Fullscreen logic ---
     openFullscreen() {
-        // Copy the current image source from the modal to the fullscreen view
         this.fullscreenImage.src = this.image.src;
         this.fullscreenImage.alt = this.image.alt;
-        
-        // Show the view
         this.fullscreenView.classList.remove('hidden');
     }
 
     closeFullscreen() {
-        // Hide the view
         this.fullscreenView.classList.add('hidden');
-        
-        // Clear src after animation to avoid ghosting on next open
         setTimeout(() => {
             this.fullscreenImage.src = '';
-        }, 300); // Wait for CSS transition (0.3s)
+        }, 300);
     }
 }
