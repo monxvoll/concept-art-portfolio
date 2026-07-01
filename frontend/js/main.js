@@ -110,10 +110,20 @@ document.addEventListener('DOMContentLoaded', () => {
         footerObserver.observe(footer);
     }
 
-    backToTopBtn.addEventListener('click', () => {
+    backToTopBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         window.scrollTo({
             top: 0,
             behavior: 'smooth'
         });
     });
+
+    // Force trigger during momentum scroll on mobile
+    backToTopBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Prevents the OS from swallowing the tap to stop scroll
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }, { passive: false });
 });

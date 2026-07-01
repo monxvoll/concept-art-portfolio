@@ -42,18 +42,36 @@ export class Modal {
         this.overlay.addEventListener('click', () => this.close());
 
         this.shareBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(window.location.href).then(() => {
-                this.shareBtn.classList.add('success');
-                this.shareText.classList.remove('hidden');
+            const currentArt = this.currentProjectGroup[this.currentIndex];
+            
+            if (navigator.share) {
+                // Native mobile share sheet
+                navigator.share({
+                    title: currentArt.title,
+                    text: `Check out ${currentArt.title} on David Ponguta's portfolio`,
+                    url: window.location.href
+                }).then(() => {
+                    this.shareBtn.classList.add('success');
+                    setTimeout(() => {
+                        this.shareBtn.classList.remove('success');
+                    }, 1000);
+                }).catch(err => {
+                    console.error('Share cancelled or failed: ', err);
+                });
+            } else {
+                // Fallback for desktop (copy to clipboard)
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                    this.shareBtn.classList.add('success');
+                    this.shareText.classList.remove('hidden');
 
-                // Hide success state after 1 second
-                setTimeout(() => {
-                    this.shareBtn.classList.remove('success');
-                    this.shareText.classList.add('hidden');
-                }, 1000);
-            }).catch(err => {
-                console.error('Failed to copy link: ', err);
-            });
+                    setTimeout(() => {
+                        this.shareBtn.classList.remove('success');
+                        this.shareText.classList.add('hidden');
+                    }, 1000);
+                }).catch(err => {
+                    console.error('Failed to copy link: ', err);
+                });
+            }
         });
 
         this.prevBtn.addEventListener('click', (e) => {
