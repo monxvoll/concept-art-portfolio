@@ -36,34 +36,34 @@ export class Modal {
     }
 
     initEvents() {
-        // --- Base Modal Events ---
-
         this.closeBtn.addEventListener('click', () => this.close());
         this.overlay.addEventListener('click', () => this.close());
 
         this.shareBtn.addEventListener('click', () => {
             const currentArt = this.currentProjectGroup[this.currentIndex];
-            
+
             if (navigator.share) {
-                // Native mobile share sheet
+                this.shareBtn.classList.add('success');
+                this.shareText.innerHTML = '&nbsp;:&nbsp&nbsp&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)';
+                this.shareText.classList.remove('hidden');
+
                 navigator.share({
                     title: currentArt.title,
                     text: `Check out ${currentArt.title} on David Ponguta's portfolio`,
                     url: window.location.href
                 }).then(() => {
-                    this.shareBtn.classList.add('success');
-                    setTimeout(() => {
-                        this.shareBtn.classList.remove('success');
-                    }, 1000);
+                    this.shareBtn.classList.remove('success');
+                    this.shareText.classList.add('hidden');
                 }).catch(err => {
+                    this.shareBtn.classList.remove('success');
+                    this.shareText.classList.add('hidden');
                     console.error('Share cancelled or failed: ', err);
                 });
             } else {
-                // Fallback for desktop (copy to clipboard)
                 navigator.clipboard.writeText(window.location.href).then(() => {
                     this.shareBtn.classList.add('success');
+                    this.shareText.textContent = 'Copied!';
                     this.shareText.classList.remove('hidden');
-
                     setTimeout(() => {
                         this.shareBtn.classList.remove('success');
                         this.shareText.classList.add('hidden');
@@ -84,14 +84,12 @@ export class Modal {
             this.next();
         });
 
-        // --- Fullscreen Events ---
         this.image.addEventListener('click', () => this.openFullscreen());
 
         this.fullscreenView.addEventListener('click', (e) => {
             if (e.target === this.fullscreenView) this.closeFullscreen();
         });
 
-        // --- Keyboard Events ---
         document.addEventListener('keydown', (e) => {
             if (this.modal.classList.contains('hidden')) return;
 
@@ -125,8 +123,23 @@ export class Modal {
             this.currentIndex = 0;
         }
 
+        const isCurrentlyHidden = this.modal.classList.contains('hidden');
+
         this.updateUI(pushHistory);
-        document.body.style.overflow = 'hidden';
+
+        if (isCurrentlyHidden) {
+            const computedStyle = window.getComputedStyle(document.body);
+            const currentPaddingRight = parseFloat(computedStyle.paddingRight) || 0;
+            this.scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+            
+            this.originalPaddingRight = document.body.style.paddingRight;
+            this.originalBodyOverflow = document.body.style.overflow;
+
+            document.body.style.paddingRight = `${currentPaddingRight + this.scrollbarWidth}px`;
+            document.body.style.overflow = 'hidden';
+            document.body.classList.add('modal-open');
+        }
+
         this.modal.classList.remove('hidden');
     }
 
@@ -150,13 +163,11 @@ export class Modal {
             this.nextBtn.classList.add('hidden');
         }
 
-        // Update browser URL
         if (pushHistory) {
             const newUrl = window.location.pathname + '?obra=' + currentArt.slug;
             window.history.pushState({ slug: currentArt.slug }, '', newUrl);
         }
 
-        // Reset scroll position to top
         if (this.textPane) {
             this.textPane.scrollTop = 0;
         }
@@ -175,19 +186,41 @@ export class Modal {
     }
 
     close(pushHistory = true) {
-        this.modal.classList.add('hidden');
-        document.body.style.overflow = 'auto';
+        if (!pushHistory) {
+            this.modal.style.transition = 'none';
+            const content = this.modal.querySelector('.modal__content');
+            if (content) content.style.transition = 'none';
+        }
 
-        // Clean up URL if we are closing normally (not via back button)
+        this.modal.classList.add('hidden');
+
         if (pushHistory) {
             window.history.pushState(null, '', window.location.pathname);
         }
 
-        setTimeout(() => {
+        const cleanup = () => {
+            document.body.style.paddingRight = this.originalPaddingRight || '';
+            document.body.style.overflow = this.originalBodyOverflow || '';
+            document.body.classList.remove('modal-open');
+
             this.image.src = '';
             this.currentProjectGroup = [];
             this.currentIndex = 0;
-        }, 400);
+
+            if (!pushHistory) {
+                setTimeout(() => {
+                    this.modal.style.transition = '';
+                    const content = this.modal.querySelector('.modal__content');
+                    if (content) content.style.transition = '';
+                }, 50);
+            }
+        };
+
+        if (!pushHistory) {
+            cleanup();
+        } else {
+            setTimeout(cleanup, 400);
+        }
     }
 
     openFullscreen() {

@@ -38,11 +38,14 @@
     display: flex;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
     transform: translateY(0) scale(1);
+    /* Bouncy entrance */
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .modal.hidden .modal__content {
-    transform: translateY(50px) scale(0.95);
+    transform: translateY(20px) scale(0.98);
+    /* Smooth exit, no bounce */
+    transition: transform 0.3s ease;
 }
 
 /* Close button */
@@ -223,14 +226,14 @@
 @media (max-width: 900px) {
     .modal__content {
         flex-direction: column;
-        height: 82dvh;
-        margin-bottom: 5dvh;
+        height: 90dvh;
+        margin-bottom: 3dvh;
     }
 
     .modal__image-pane {
         flex: 5;
         min-height: 0;
-        padding: 2.25rem 1rem 3.5rem 1rem;
+        padding: 3.5rem 1rem 3.5rem 1rem;
     }
 
     .modal__text-pane {

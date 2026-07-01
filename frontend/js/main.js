@@ -3,6 +3,10 @@ import { Collage } from './components/Collage.js';
 import { Modal } from './components/Modal.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+
     const collageContainer = document.getElementById('collage-container');
     const modal = new Modal(artworks);
     

@@ -120,3 +120,7 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.4);
 }
+
+body.modal-open {
+    overscroll-behavior: none;
+}
