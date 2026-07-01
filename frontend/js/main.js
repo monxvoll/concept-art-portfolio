@@ -88,10 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // If the top of the footer is inside the viewport
             if (footerRect.top < window.innerHeight) {
                 const overlap = window.innerHeight - footerRect.top;
-                // Move the button up by the exact amount the footer is showing
-                backToTopBtn.style.bottom = `calc(2rem + ${overlap}px)`;
+                // Use transform instead of bottom for smoother animation and override CSS
+                backToTopBtn.style.transform = `translateY(-${overlap}px)`;
             } else {
-                backToTopBtn.style.bottom = '2rem';
+                backToTopBtn.style.transform = '';
             }
         }
     });

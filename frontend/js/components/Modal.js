@@ -25,11 +25,12 @@ export class Modal {
         this.title = document.getElementById('modal-title');
         this.category = document.getElementById('modal-category');
         this.description = document.getElementById('modal-description');
+        this.textPane = document.querySelector('.modal__text-pane');
 
         // Fullscreen elements
         this.fullscreenView = document.getElementById('fullscreen-view');
         this.fullscreenImage = document.getElementById('fullscreen-image');
-        this.fullscreenCloseBtn = document.getElementById('fullscreen-close');
+
 
         this.initEvents();
     }
@@ -72,7 +73,7 @@ export class Modal {
 
         // --- Fullscreen Events ---
         this.image.addEventListener('click', () => this.openFullscreen());
-        this.fullscreenCloseBtn.addEventListener('click', () => this.closeFullscreen());
+
         this.fullscreenView.addEventListener('click', (e) => {
             if (e.target === this.fullscreenView) this.closeFullscreen();
         });
@@ -141,6 +142,11 @@ export class Modal {
         if (pushHistory) {
             const newUrl = window.location.pathname + '?obra=' + currentArt.slug;
             window.history.pushState({ slug: currentArt.slug }, '', newUrl);
+        }
+
+        // Reset scroll position to top
+        if (this.textPane) {
+            this.textPane.scrollTop = 0;
         }
     }
 

@@ -60,18 +60,18 @@
     .collage__item:hover {
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
     }
-    
+
     /* Zoom and blur effect inside the card boundaries */
     .collage__item:hover .collage__image {
         transform: scale(1.03);
         filter: brightness(0.7);
     }
-    
+
     /* Show overlay on hover */
     .collage__item:hover .collage__overlay {
         opacity: 1;
     }
-    
+
     /* Slide up animation for the title on hover */
     .collage__item:hover .collage__title {
         transform: translateY(0);
@@ -83,16 +83,16 @@
     .collage__item.is-active {
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
     }
-    
+
     .collage__item.is-active .collage__image {
         transform: scale(1.03);
         filter: brightness(0.7);
     }
-    
+
     .collage__item.is-active .collage__overlay {
         opacity: 1;
     }
-    
+
     .collage__item.is-active .collage__title {
         transform: translateY(0);
     }
