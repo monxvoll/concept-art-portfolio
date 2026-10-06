@@ -38,3 +38,6 @@ credentials.json
 # OS specific files
 .DS_Store
 Thumbs.db
+
+# Superpowers docs
+superpowers/
