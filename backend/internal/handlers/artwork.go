@@ -13,6 +13,8 @@ import (
 
 type ArtworkServiceInterface interface {
 	CreateArtwork(artwork models.Artwork, file *multipart.FileHeader) error
+	GetArtworks() ([]models.Artwork, error)
+	DeleteArtwork(id string) error
 }
 
 type ArtworkHandler struct {

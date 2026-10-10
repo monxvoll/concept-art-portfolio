@@ -22,6 +22,14 @@ func (m *mockArtworkService) CreateArtwork(artwork models.Artwork, file *multipa
 	return m.createErr
 }
 
+func (m *mockArtworkService) GetArtworks() ([]models.Artwork, error) {
+	return nil, nil
+}
+
+func (m *mockArtworkService) DeleteArtwork(id string) error {
+	return nil
+}
+
 func TestArtworkHandler_CreateArtwork_MissingTitle(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()

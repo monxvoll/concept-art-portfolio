@@ -50,3 +50,24 @@ func (s *ArtworkService) CreateArtwork(artwork models.Artwork, file *multipart.F
 
 	return nil
 }
+
+func (s *ArtworkService) GetArtworks() ([]models.Artwork, error) {
+	return s.db.GetArtworks()
+}
+
+func (s *ArtworkService) DeleteArtwork(id string) error {
+	artwork, err := s.db.GetArtworkByID(id)
+	if err != nil {
+		return err
+	}
+
+	if artwork.CloudinaryID != "" {
+		err = s.storage.DeleteImage(artwork.CloudinaryID)
+		if err != nil {
+			slog.Error("failed to delete image from storage", "error", err, "publicID", artwork.CloudinaryID)
+			return err
+		}
+	}
+
+	return s.db.DeleteArtwork(id)
+}

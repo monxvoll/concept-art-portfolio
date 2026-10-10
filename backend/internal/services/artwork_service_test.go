@@ -113,3 +113,51 @@ func TestArtworkService_CreateArtwork_DBFailureRollback(t *testing.T) {
 		t.Fatalf("expected rollback deletion of image, deleted: %v", storage.deletedIDs)
 	}
 }
+
+func TestArtworkService_GetArtworks_Success(t *testing.T) {
+	db := &mockDatabaseClient{
+		artworks: []models.Artwork{
+			{ID: "1", Title: "Art 1"},
+			{ID: "2", Title: "Art 2"},
+		},
+	}
+	svc := services.NewArtworkService(nil, db)
+
+	artworks, err := svc.GetArtworks()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(artworks) != 2 {
+		t.Fatalf("expected 2 artworks, got %d", len(artworks))
+	}
+}
+
+func TestArtworkService_DeleteArtwork_Success(t *testing.T) {
+	storage := &mockStorageClient{}
+	db := &mockDatabaseClient{
+		artworks: []models.Artwork{
+			{ID: "123", CloudinaryID: "pid123"},
+		},
+	}
+	svc := services.NewArtworkService(storage, db)
+
+	err := svc.DeleteArtwork("123")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(storage.deletedIDs) == 0 || storage.deletedIDs[0] != "pid123" {
+		t.Errorf("expected storage.DeleteImage to be called with 'pid123', got %v", storage.deletedIDs)
+	}
+}
+
+func TestArtworkService_DeleteArtwork_NotFound(t *testing.T) {
+	storage := &mockStorageClient{}
+	db := &mockDatabaseClient{getErr: errors.New("not found")}
+	svc := services.NewArtworkService(storage, db)
+
+	err := svc.DeleteArtwork("invalid")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
