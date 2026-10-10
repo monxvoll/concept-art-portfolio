@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"bytes"
+	"errors"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -16,6 +17,7 @@ import (
 // mockArtworkService simulates the service layer
 type mockArtworkService struct {
 	createErr error
+	deleteErr error
 }
 
 func (m *mockArtworkService) CreateArtwork(artwork models.Artwork, file *multipart.FileHeader) error {
@@ -27,7 +29,7 @@ func (m *mockArtworkService) GetArtworks() ([]models.Artwork, error) {
 }
 
 func (m *mockArtworkService) DeleteArtwork(id string) error {
-	return nil
+	return m.deleteErr
 }
 
 func TestArtworkHandler_CreateArtwork_MissingTitle(t *testing.T) {
@@ -103,5 +105,58 @@ func TestArtworkHandler_CreateArtwork_Success(t *testing.T) {
 
 	if w.Code != http.StatusCreated {
 		t.Fatalf("expected 201 Created, got %d", w.Code)
+	}
+}
+
+func TestArtworkHandler_GetArtworks_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	c.Request = httptest.NewRequest("GET", "/api/artworks", nil)
+
+	mockSvc := &mockArtworkService{}
+	h := handlers.NewArtworkHandler(mockSvc)
+
+	h.GetArtworks(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", w.Code)
+	}
+}
+
+func TestArtworkHandler_DeleteArtwork_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = []gin.Param{{Key: "id", Value: "123"}}
+
+	c.Request = httptest.NewRequest("DELETE", "/api/artworks/123", nil)
+
+	mockSvc := &mockArtworkService{}
+	h := handlers.NewArtworkHandler(mockSvc)
+
+	h.DeleteArtwork(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", w.Code)
+	}
+}
+
+func TestArtworkHandler_DeleteArtwork_NotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = []gin.Param{{Key: "id", Value: "123"}}
+
+	c.Request = httptest.NewRequest("DELETE", "/api/artworks/123", nil)
+
+	mockSvc := &mockArtworkService{ deleteErr: errors.New("not found") }
+	h := handlers.NewArtworkHandler(mockSvc)
+
+	h.DeleteArtwork(c)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 Not Found, got %d", w.Code)
 	}
 }

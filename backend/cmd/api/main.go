@@ -63,9 +63,16 @@ func main() {
 
 	// Routes
 	api := r.Group("/api")
-	api.Use(authMiddleware)
+
+	// Public routes
+	api.GET("/artworks", artworkHandler.GetArtworks)
+
+	// Protected routes
+	protected := api.Group("/")
+	protected.Use(authMiddleware)
 	{
-		api.POST("/artworks", artworkHandler.CreateArtwork)
+		protected.POST("/artworks", artworkHandler.CreateArtwork)
+		protected.DELETE("/artworks/:id", artworkHandler.DeleteArtwork)
 	}
 
 	// Start the server
