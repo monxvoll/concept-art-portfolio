@@ -62,3 +62,14 @@ func (f *FirestoreClient) DeleteArtwork(id string) error {
 	_, err := f.client.Collection("artworks").Doc(id).Delete(f.ctx)
 	return err
 }
+
+// GetArtworkByID retrieves a single artwork document from Firestore by ID.
+func (f *FirestoreClient) GetArtworkByID(id string) (models.Artwork, error) {
+	doc, err := f.client.Collection("artworks").Doc(id).Get(f.ctx)
+	if err != nil {
+		return models.Artwork{}, err
+	}
+	var artwork models.Artwork
+	err = doc.DataTo(&artwork)
+	return artwork, err
+}

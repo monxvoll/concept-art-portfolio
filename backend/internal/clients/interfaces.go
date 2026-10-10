@@ -13,6 +13,7 @@ type StorageClient interface {
 
 type DatabaseClient interface {
 	SaveArtwork(artwork models.Artwork) error
+	GetArtworkByID(id string) (models.Artwork, error)
 	GetArtworks() ([]models.Artwork, error)
 	DeleteArtwork(id string) error
 }

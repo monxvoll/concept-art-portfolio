@@ -48,6 +48,23 @@ func (m *mockDatabaseClient) GetArtworks() ([]models.Artwork, error) {
 	return m.artworks, m.getErr
 }
 
+func (m *mockDatabaseClient) GetArtworkByID(id string) (models.Artwork, error) {
+	if m.getErr != nil {
+		return models.Artwork{}, m.getErr
+	}
+	for _, art := range m.saved {
+		if art.ID == id {
+			return art, nil
+		}
+	}
+	for _, art := range m.artworks {
+		if art.ID == id {
+			return art, nil
+		}
+	}
+	return models.Artwork{}, errors.New("not found")
+}
+
 func (m *mockDatabaseClient) DeleteArtwork(id string) error {
 	return m.deleteErr
 }
