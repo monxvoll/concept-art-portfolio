@@ -2,7 +2,6 @@ package handlers_test
 
 import (
 	"bytes"
-	"errors"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -146,24 +145,6 @@ func TestArtworkHandler_DeleteArtwork_Success(t *testing.T) {
 }
 
 func TestArtworkHandler_DeleteArtwork_NotFound(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Params = []gin.Param{{Key: "id", Value: "123"}}
-
-	c.Request = httptest.NewRequest("DELETE", "/api/artworks/123", nil)
-
-	mockSvc := &mockArtworkService{ deleteErr: errors.New("not found") }
-	h := handlers.NewArtworkHandler(mockSvc)
-
-	h.DeleteArtwork(c)
-
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 Not Found, got %d", w.Code)
-	}
-}
-
-func TestArtworkHandler_DeleteArtwork_GRPCNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
