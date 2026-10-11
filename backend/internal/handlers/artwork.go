@@ -3,10 +3,13 @@ package handlers
 import (
 	"mime/multipart"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"backend/internal/models"
 )
@@ -79,9 +82,7 @@ func (h *ArtworkHandler) DeleteArtwork(c *gin.Context) {
 
 	err := h.svc.DeleteArtwork(id)
 	if err != nil {
-		// grpc codes.NotFound handling is complex without importing the library. 
-		// For the sake of the plan's Review Focus, we check string match.
-		if err.Error() == "not found" || err.Error() == "rpc error: code = NotFound desc = not found" {
+		if status.Code(err) == codes.NotFound || strings.Contains(strings.ToLower(err.Error()), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "artwork not found"})
 			return
 		}

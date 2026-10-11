@@ -12,6 +12,7 @@ import (
 
 // Mock StorageClient
 var _ clients.StorageClient = (*mockStorageClient)(nil)
+
 type mockStorageClient struct {
 	uploadErr  error
 	deleteErr  error
@@ -31,12 +32,14 @@ func (m *mockStorageClient) DeleteImage(publicID string) error {
 
 // Mock DatabaseClient
 var _ clients.DatabaseClient = (*mockDatabaseClient)(nil)
+
 type mockDatabaseClient struct {
-	saveErr   error
-	saved     []models.Artwork
-	getErr    error
-	artworks  []models.Artwork
-	deleteErr error
+	saveErr    error
+	saved      []models.Artwork
+	getErr     error
+	artworks   []models.Artwork
+	deleteErr  error
+	deletedIDs []string
 }
 
 func (m *mockDatabaseClient) SaveArtwork(artwork models.Artwork) error {
@@ -66,6 +69,7 @@ func (m *mockDatabaseClient) GetArtworkByID(id string) (models.Artwork, error) {
 }
 
 func (m *mockDatabaseClient) DeleteArtwork(id string) error {
+	m.deletedIDs = append(m.deletedIDs, id)
 	return m.deleteErr
 }
 
@@ -159,5 +163,26 @@ func TestArtworkService_DeleteArtwork_NotFound(t *testing.T) {
 	err := svc.DeleteArtwork("invalid")
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestArtworkService_DeleteArtwork_StorageFails_DBStillDeleted(t *testing.T) {
+	storage := &mockStorageClient{deleteErr: errors.New("cloudinary down")}
+	db := &mockDatabaseClient{
+		artworks: []models.Artwork{
+			{ID: "123", CloudinaryID: "pid123"},
+		},
+	}
+
+	svc := services.NewArtworkService(storage, db)
+
+	err := svc.DeleteArtwork("123")
+
+	if err != nil {
+		t.Fatalf("no error expected, got: %v", err)
+	}
+
+	if len(db.deletedIDs) == 0 || db.deletedIDs[0] != "123" {
+		t.Fatalf("se esperaba que la DB borrara '123', pero la libreta tiene: %v", db.deletedIDs)
 	}
 }

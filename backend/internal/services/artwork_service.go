@@ -58,16 +58,21 @@ func (s *ArtworkService) GetArtworks() ([]models.Artwork, error) {
 func (s *ArtworkService) DeleteArtwork(id string) error {
 	artwork, err := s.db.GetArtworkByID(id)
 	if err != nil {
+		slog.Error("failed to get artwork from database", "error", err)
+		return err
+	}
+
+	err = s.db.DeleteArtwork(id)
+	if err != nil {
+		slog.Error("failed to delete artwork from database", "error", err)
 		return err
 	}
 
 	if artwork.CloudinaryID != "" {
-		err = s.storage.DeleteImage(artwork.CloudinaryID)
-		if err != nil {
-			slog.Error("failed to delete image from storage", "error", err, "publicID", artwork.CloudinaryID)
-			return err
+		storageErr := s.storage.DeleteImage(artwork.CloudinaryID)
+		if storageErr != nil {
+			slog.Error("CRITICAL: failed to delete image from storage", "error", storageErr, "publicID", artwork.CloudinaryID)
 		}
 	}
-
-	return s.db.DeleteArtwork(id)
+	return nil
 }

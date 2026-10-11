@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"backend/internal/handlers"
 	"backend/internal/models"
@@ -152,6 +154,26 @@ func TestArtworkHandler_DeleteArtwork_NotFound(t *testing.T) {
 	c.Request = httptest.NewRequest("DELETE", "/api/artworks/123", nil)
 
 	mockSvc := &mockArtworkService{ deleteErr: errors.New("not found") }
+	h := handlers.NewArtworkHandler(mockSvc)
+
+	h.DeleteArtwork(c)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 Not Found, got %d", w.Code)
+	}
+}
+
+func TestArtworkHandler_DeleteArtwork_GRPCNotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = []gin.Param{{Key: "id", Value: "123"}}
+
+	c.Request = httptest.NewRequest("DELETE", "/api/artworks/123", nil)
+
+	// Simulate real Firestore gRPC NotFound error
+	grpcErr := status.Error(codes.NotFound, "projects/my-project/databases/(default)/documents/artworks/123 not found")
+	mockSvc := &mockArtworkService{deleteErr: grpcErr}
 	h := handlers.NewArtworkHandler(mockSvc)
 
 	h.DeleteArtwork(c)
