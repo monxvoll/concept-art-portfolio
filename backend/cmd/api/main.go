@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"log/slog"
 	"net/http"
 	"os"
 
@@ -23,34 +22,27 @@ func main() {
 	cloudinaryURL := os.Getenv("CLOUDINARY_URL")
 	storageClient, err := clients.NewCloudinaryClient(cloudinaryURL)
 	if err != nil {
-		slog.Error("failed to init cloudinary", "err", err)
+		log.Fatalf("failed to init cloudinary: %v", err)
 	}
 
 	// Init Firestore
 	projectID := os.Getenv("FIREBASE_PROJECT_ID")
 	dbClient, err := clients.NewFirestoreClient(ctx, projectID)
 	if err != nil {
-		slog.Error("failed to init firestore", "err", err)
+		log.Fatalf("failed to init firestore: %v", err)
 	}
 
-	// Init Firebase Auth for Middleware
+	// Init Firebase Auth for Middleware.
+	// Fail fast: never start the server with protected routes left unprotected.
 	app, err := firebase.NewApp(ctx, nil)
-	var authMiddleware gin.HandlerFunc
-	if err == nil {
-		authClient, err := app.Auth(ctx)
-		if err == nil {
-			authMiddleware = middleware.FirebaseAuth(authClient)
-		} else {
-			slog.Error("failed to init firebase auth", "err", err)
-		}
-	} else {
-		slog.Error("failed to init firebase app", "err", err)
+	if err != nil {
+		log.Fatalf("failed to init firebase app: %v", err)
 	}
-
-	if authMiddleware == nil {
-		// Mock auth for now if firebase fails to load
-		authMiddleware = func(c *gin.Context) { c.Next() }
+	authClient, err := app.Auth(ctx)
+	if err != nil {
+		log.Fatalf("failed to init firebase auth: %v", err)
 	}
+	authMiddleware := middleware.FirebaseAuth(authClient)
 
 	// Wire up layers
 	artworkSvc := services.NewArtworkService(storageClient, dbClient)
