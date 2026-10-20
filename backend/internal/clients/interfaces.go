@@ -16,4 +16,5 @@ type DatabaseClient interface {
 	GetArtworkByID(id string) (models.Artwork, error)
 	GetArtworks() ([]models.Artwork, error)
 	DeleteArtwork(id string) error
+	UpdateArtwork(id string, update models.ArtworkUpdate) error
 }

@@ -63,6 +63,18 @@ func (f *FirestoreClient) DeleteArtwork(id string) error {
 	return err
 }
 
+// UpdateArtwork overwrites only the editable fields of an artwork document.
+// Firestore returns a NotFound error if the document does not exist.
+func (f *FirestoreClient) UpdateArtwork(id string, update models.ArtworkUpdate) error {
+	_, err := f.client.Collection("artworks").Doc(id).Update(f.ctx, []firestore.Update{
+		{Path: "title", Value: update.Title},
+		{Path: "description", Value: update.Description},
+		{Path: "category", Value: update.Category},
+		{Path: "artwork_date", Value: update.ArtworkDate},
+	})
+	return err
+}
+
 // GetArtworkByID retrieves a single artwork document from Firestore by ID.
 func (f *FirestoreClient) GetArtworkByID(id string) (models.Artwork, error) {
 	doc, err := f.client.Collection("artworks").Doc(id).Get(f.ctx)

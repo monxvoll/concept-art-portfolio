@@ -18,6 +18,7 @@ type ArtworkServiceInterface interface {
 	CreateArtwork(artwork models.Artwork, file *multipart.FileHeader) error
 	GetArtworks() ([]models.Artwork, error)
 	DeleteArtwork(id string) error
+	UpdateArtwork(id string, update models.ArtworkUpdate) (models.Artwork, error)
 }
 
 type ArtworkHandler struct {
@@ -73,6 +74,12 @@ func (h *ArtworkHandler) GetArtworks(c *gin.Context) {
 	c.JSON(http.StatusOK, artworks)
 }
 
+// isNotFound reports whether err means the artwork does not exist
+// (Firestore gRPC NotFound, or a plain "not found" error from lower layers).
+func isNotFound(err error) bool {
+	return status.Code(err) == codes.NotFound || strings.Contains(strings.ToLower(err.Error()), "not found")
+}
+
 func (h *ArtworkHandler) DeleteArtwork(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -82,7 +89,7 @@ func (h *ArtworkHandler) DeleteArtwork(c *gin.Context) {
 
 	err := h.svc.DeleteArtwork(id)
 	if err != nil {
-		if status.Code(err) == codes.NotFound || strings.Contains(strings.ToLower(err.Error()), "not found") {
+		if isNotFound(err) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "artwork not found"})
 			return
 		}
@@ -91,4 +98,36 @@ func (h *ArtworkHandler) DeleteArtwork(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "artwork deleted"})
+}
+
+func (h *ArtworkHandler) UpdateArtwork(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "artwork id is required"})
+		return
+	}
+
+	var update models.ArtworkUpdate
+	if err := c.ShouldBindJSON(&update); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON body"})
+		return
+	}
+
+	update.Title = strings.TrimSpace(update.Title)
+	if update.Title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "title is required"})
+		return
+	}
+
+	artwork, err := h.svc.UpdateArtwork(id, update)
+	if err != nil {
+		if isNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "artwork not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update artwork"})
+		return
+	}
+
+	c.JSON(http.StatusOK, artwork)
 }

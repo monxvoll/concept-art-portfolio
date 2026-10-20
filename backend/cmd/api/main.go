@@ -64,6 +64,7 @@ func main() {
 	protected.Use(authMiddleware)
 	{
 		protected.POST("/artworks", artworkHandler.CreateArtwork)
+		protected.PUT("/artworks/:id", artworkHandler.UpdateArtwork)
 		protected.DELETE("/artworks/:id", artworkHandler.DeleteArtwork)
 	}
 

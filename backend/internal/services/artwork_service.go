@@ -76,3 +76,24 @@ func (s *ArtworkService) DeleteArtwork(id string) error {
 	}
 	return nil
 }
+
+// UpdateArtwork overwrites the editable fields of an existing artwork and
+// returns the resulting artwork. Image, slug and identifiers are preserved.
+func (s *ArtworkService) UpdateArtwork(id string, update models.ArtworkUpdate) (models.Artwork, error) {
+	artwork, err := s.db.GetArtworkByID(id)
+	if err != nil {
+		slog.Error("failed to get artwork from database", "error", err)
+		return models.Artwork{}, err
+	}
+
+	if err := s.db.UpdateArtwork(id, update); err != nil {
+		slog.Error("failed to update artwork in database", "error", err)
+		return models.Artwork{}, err
+	}
+
+	artwork.Title = update.Title
+	artwork.Description = update.Description
+	artwork.Category = update.Category
+	artwork.ArtworkDate = update.ArtworkDate
+	return artwork, nil
+}

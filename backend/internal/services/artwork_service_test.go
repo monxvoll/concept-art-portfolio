@@ -40,6 +40,9 @@ type mockDatabaseClient struct {
 	artworks   []models.Artwork
 	deleteErr  error
 	deletedIDs []string
+	updateErr  error
+	updatedIDs []string
+	updates    []models.ArtworkUpdate
 }
 
 func (m *mockDatabaseClient) SaveArtwork(artwork models.Artwork) error {
@@ -71,6 +74,65 @@ func (m *mockDatabaseClient) GetArtworkByID(id string) (models.Artwork, error) {
 func (m *mockDatabaseClient) DeleteArtwork(id string) error {
 	m.deletedIDs = append(m.deletedIDs, id)
 	return m.deleteErr
+}
+
+func (m *mockDatabaseClient) UpdateArtwork(id string, update models.ArtworkUpdate) error {
+	m.updatedIDs = append(m.updatedIDs, id)
+	m.updates = append(m.updates, update)
+	return m.updateErr
+}
+
+func TestArtworkService_UpdateArtwork_Success(t *testing.T) {
+	db := &mockDatabaseClient{
+		artworks: []models.Artwork{
+			{ID: "123", Title: "Old", Slug: "old-slug", ImageURL: "url", CloudinaryID: "pid", Project: "P"},
+		},
+	}
+	svc := services.NewArtworkService(&mockStorageClient{}, db)
+
+	update := models.ArtworkUpdate{Title: "New", Description: "Desc", Category: "Environment", ArtworkDate: "2026-01-02"}
+	got, err := svc.UpdateArtwork("123", update)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(db.updatedIDs) != 1 || db.updatedIDs[0] != "123" || db.updates[0] != update {
+		t.Fatalf("expected db update of '123' with %+v, got ids=%v updates=%+v", update, db.updatedIDs, db.updates)
+	}
+
+	want := models.Artwork{
+		ID: "123", Title: "New", Description: "Desc", Category: "Environment", ArtworkDate: "2026-01-02",
+		Slug: "old-slug", ImageURL: "url", CloudinaryID: "pid", Project: "P",
+	}
+	if got != want {
+		t.Fatalf("expected merged artwork %+v, got %+v", want, got)
+	}
+}
+
+func TestArtworkService_UpdateArtwork_NotFound(t *testing.T) {
+	db := &mockDatabaseClient{getErr: errors.New("not found")}
+	svc := services.NewArtworkService(&mockStorageClient{}, db)
+
+	_, err := svc.UpdateArtwork("missing", models.ArtworkUpdate{Title: "New"})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if len(db.updatedIDs) != 0 {
+		t.Fatalf("db update must not run for a missing artwork, got %v", db.updatedIDs)
+	}
+}
+
+func TestArtworkService_UpdateArtwork_DBFailure(t *testing.T) {
+	db := &mockDatabaseClient{
+		artworks:  []models.Artwork{{ID: "123", Title: "Old"}},
+		updateErr: errors.New("firestore down"),
+	}
+	svc := services.NewArtworkService(&mockStorageClient{}, db)
+
+	_, err := svc.UpdateArtwork("123", models.ArtworkUpdate{Title: "New"})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
 }
 
 func TestArtworkService_CreateArtwork_Success(t *testing.T) {

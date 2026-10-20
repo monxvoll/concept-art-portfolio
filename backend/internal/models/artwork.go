@@ -19,3 +19,12 @@ type Artwork struct {
 	CreatedAt    time.Time `json:"createdAt" firestore:"createdAt"`
 	ArtworkDate  string    `json:"artwork_date" firestore:"artwork_date"`
 }
+
+// ArtworkUpdate holds the editable fields of an artwork (PUT /api/artworks/:id).
+// Image, slug and identifiers are intentionally not editable through this payload.
+type ArtworkUpdate struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
+	ArtworkDate string `json:"artwork_date"`
+}
