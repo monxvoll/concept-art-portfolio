@@ -1,5 +1,16 @@
-// Admin authentication modal with lazy-loaded assets for the admin panel
 import { config } from '../config.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+
+// Uses a placeholder config. The user should replace it with their own credentials.
+const firebaseConfig = {
+    apiKey: config.firebase?.apiKey || "YOUR_API_KEY",
+    authDomain: config.firebase?.authDomain || "YOUR_AUTH_DOMAIN",
+    projectId: config.firebase?.projectId || "YOUR_PROJECT_ID",
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
 
 export class Admin {
     constructor(modalElement) {
@@ -11,13 +22,34 @@ export class Admin {
         this.form = this.modal.querySelector('#login-form');
         this.overlay = this.modal.querySelector('#login-overlay');
 
+        this.initAuthListener();
+
         if (this.form) {
             this.initEventListeners();
         }
     }
 
+    initAuthListener() {
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("Admin authenticated with Firebase. Enabling Admin Mode...");
+                document.body.classList.add('admin-mode');
+                
+                // Load third-party admin assets, then notify other components
+                this.loadAdminAssets().then(() => {
+                    document.dispatchEvent(new CustomEvent('adminModeActivated', { detail: { user } }));
+                }).catch(err => {
+                    console.error("Failed to load admin assets:", err);
+                });
+            } else {
+                console.log("Admin logged out from Firebase.");
+                document.body.classList.remove('admin-mode');
+                document.dispatchEvent(new CustomEvent('adminModeDeactivated'));
+            }
+        });
+    }
+
     initEventListeners() {
-        // Toggle admin modal with Ctrl + Shift + configured key
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === config.adminShortcut.toLowerCase()) {
                 e.preventDefault();
@@ -42,8 +74,7 @@ export class Admin {
     }
 
     toggleModal() {
-        // If already in admin mode, the shortcut acts as a logout toggle
-        if (document.body.classList.contains('admin-mode')) {
+        if (auth.currentUser) {
             this.logout();
             return;
         }
@@ -51,47 +82,47 @@ export class Admin {
         if (this.modal.classList.contains('hidden')) {
             this.modal.classList.remove('hidden');
             setTimeout(() => {
-                const passInput = this.modal.querySelector('#admin-pass');
-                if (passInput) passInput.focus();
+                const emailInput = this.modal.querySelector('#admin-email');
+                if (emailInput) emailInput.focus();
             }, 100);
         } else {
             this.closeModal();
         }
     }
 
-    logout() {
-        console.log("Admin logged out.");
-        document.body.classList.remove('admin-mode');
-        document.dispatchEvent(new CustomEvent('adminModeDeactivated'));
-        window.location.reload();
+    async logout() {
+        try {
+            await signOut(auth);
+            window.location.reload();
+        } catch (error) {
+            console.error("Logout error:", error);
+        }
     }
 
     closeModal() {
         this.modal.classList.add('hidden');
     }
 
-    // Mock authentication: any non-empty password activates admin mode
-    authenticate() {
+    async authenticate() {
+        const emailInput = this.modal.querySelector('#admin-email');
         const passInput = this.modal.querySelector('#admin-pass');
+        
+        const email = emailInput ? emailInput.value : '';
         const password = passInput ? passInput.value : '';
 
-        if (password.length > 0) {
-            console.log("Admin authenticated (Mock). Enabling Admin Mode...");
-            document.body.classList.add('admin-mode');
-            this.closeModal();
-            passInput.value = '';
-
-            // Load third-party admin assets, then notify other components
-            this.loadAdminAssets().then(() => {
-                document.dispatchEvent(new CustomEvent('adminModeActivated'));
-            }).catch(err => {
-                console.error("Failed to load admin assets:", err);
-            });
+        if (email.length > 0 && password.length > 0) {
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                this.closeModal();
+                if (emailInput) emailInput.value = '';
+                if (passInput) passInput.value = '';
+            } catch (error) {
+                console.error("Authentication failed:", error);
+                alert("Login failed: " + error.message);
+            }
         }
     }
 
-    // Lazily injects SlimSelect and Flatpickr CSS/JS into the page.
-    // Inserts vendor CSS before the app stylesheets so custom overrides take priority.
     loadAdminAssets() {
         const assets = [
             { type: 'css', url: 'https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css' },
@@ -109,7 +140,6 @@ export class Admin {
                     link.href = asset.url;
                     link.onload = resolve;
                     link.onerror = reject;
-                    // Insert before app styles so our overrides win
                     const customStyles = document.querySelector('link[href="./assets/css/gallery.css"]');
                     if (customStyles) {
                         document.head.insertBefore(link, customStyles);

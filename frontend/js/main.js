@@ -1,12 +1,14 @@
 // Entry point - initializes all components and handles page-level routing
-import { artworks } from './services/mockData.js';
+import { fetchArtworks, deleteArtwork, createArtwork } from './services/api.js';
 import { Collage } from './components/Collage.js';
 import { Modal } from './components/Modal.js';
-import { Admin } from './components/AdminAuth.js';
+import { Admin, auth } from './components/AdminAuth.js';
 import { AddArtwork } from './components/AddArtwork.js';
 import { config } from './config.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+let artworks = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
 
     // Inject config values (name, role, email, etc.) into the DOM
     const initConfig = () => {
@@ -51,6 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     initConfig();
 
+    try {
+        artworks = await fetchArtworks();
+    } catch (e) {
+        console.error("Failed to fetch artworks:", e);
+        // Fallback to empty array if backend is down
+        artworks = [];
+    }
+
     // Prevent browser from restoring scroll position on reload
     if ('scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
@@ -70,10 +80,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize components
     const modal = new Modal(artworkModalEl, artworks);
     const admin = new Admin(loginModalEl);
-    const addArtworkModal = new AddArtwork(addArtworkModalEl, (newArtwork) => {
-        artworks.push(newArtwork);
-        artworks.sort(byDateDesc);
-        collage.render();
+    
+    const addArtworkModal = new AddArtwork(addArtworkModalEl, async (formData) => {
+        try {
+            if (!auth.currentUser) throw new Error("Not logged in");
+            const token = await auth.currentUser.getIdToken();
+            const newArtwork = await createArtwork(formData, token);
+            artworks.push(newArtwork);
+            artworks.sort(byDateDesc);
+            collage.render();
+        } catch (e) {
+            console.error("Failed to add artwork", e);
+            alert("Failed to add artwork");
+        }
     });
 
     // Sort artworks newest-first before initial render
@@ -168,8 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // On mobile, touchstart fires even during momentum scroll; prevent default
-    // so the OS doesn't swallow the tap meant to scroll to top
     backToTopBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
         window.scrollTo({
@@ -178,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, { passive: false });
 
-    // -- Delete artwork confirmation (mock) --
+    // -- Delete artwork confirmation (mock to API) --
 
     const confirmModal = document.getElementById('confirm-modal');
     const confirmOverlay = document.getElementById('confirm-overlay');
@@ -208,12 +225,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (confirmOverlay) confirmOverlay.addEventListener('click', closeConfirmModal);
     if (confirmCancel) confirmCancel.addEventListener('click', closeConfirmModal);
 
-    if (confirmDelete) confirmDelete.addEventListener('click', () => {
+    if (confirmDelete) confirmDelete.addEventListener('click', async () => {
         if (artworkToDelete) {
-            const index = artworks.findIndex(a => a.id === artworkToDelete.id);
-            if (index > -1) {
-                artworks.splice(index, 1);
-                collage.render();
+            try {
+                if (!auth.currentUser) throw new Error("Not logged in");
+                const token = await auth.currentUser.getIdToken();
+                await deleteArtwork(artworkToDelete.id, token);
+                
+                const index = artworks.findIndex(a => a.id === artworkToDelete.id);
+                if (index > -1) {
+                    artworks.splice(index, 1);
+                    collage.render();
+                }
+            } catch (e) {
+                console.error("Failed to delete artwork", e);
+                alert("Failed to delete artwork");
             }
             closeConfirmModal();
         }

@@ -30,7 +30,6 @@ export class AddArtwork {
     }
 
     initEvents() {
-        // Initialize third-party widgets once admin assets are loaded
         document.addEventListener('adminModeActivated', () => {
             if (typeof SlimSelect !== 'undefined' && !this.slimSelect) {
                 this.slimSelect = new SlimSelect({
@@ -104,9 +103,7 @@ export class AddArtwork {
         });
     }
 
-    // Show a preview of the selected image using an Object URL
     loadPreview(file) {
-        // Revoke the previous URL to avoid memory leaks
         if (this._objectUrl) {
             URL.revokeObjectURL(this._objectUrl);
         }
@@ -143,7 +140,6 @@ export class AddArtwork {
         }
     }
 
-    // Generate a URL-safe slug from a title (strips accents, special chars, etc.)
     generateSlug(title) {
         return title
             .toLowerCase()
@@ -154,17 +150,16 @@ export class AddArtwork {
             .replace(/\s+/g, '-');
     }
 
-    submit() {
+    async submit() {
         const title = this.titleInput.value.trim();
-        const project = this.projectInput.value.trim() || null;
+        const project = this.projectInput.value.trim() || "";
         const category = this.categorySelect.value;
-        const image_url = this._objectUrl;
+        const file = this.fileInput.files[0];
         const artwork_date = this.dateInput.value;
         const description = this.descriptionInput.value.trim();
 
-        // Validate required fields and highlight missing ones briefly
-        if (!title || !category || !image_url || !artwork_date || !description) {
-            if (!image_url) {
+        if (!title || !category || !file || !artwork_date || !description) {
+            if (!file) {
                 this.dropzone.classList.add('drag-over');
                 setTimeout(() => this.dropzone.classList.remove('drag-over'), 800);
             }
@@ -183,35 +178,34 @@ export class AddArtwork {
             return;
         }
 
-        const newArtwork = {
-            id: `artwork-${Date.now()}`,
-            title,
-            slug: this.generateSlug(title),
-            project,
-            category,
-            description,
-            image_url,
-            cloudinary_id: 'none',
-            artwork_date,
-            createdAt: new Date().toISOString(),
-        };
+        const formData = new FormData();
+        formData.append('title', title);
+        if (project) formData.append('project', project);
+        formData.append('category', category);
+        formData.append('artwork_date', artwork_date);
+        formData.append('description', description);
+        formData.append('image', file);
 
-        // Brief success animation on the submit button
         const btn = this.form.querySelector('button[type="submit"]');
         const originalText = btn.textContent;
-        btn.textContent = 'Added!';
-        btn.classList.add('success');
+        btn.textContent = 'Adding...';
+        btn.disabled = true;
 
-        setTimeout(() => {
+        try {
+            if (this.onAdd) await this.onAdd(formData);
+            btn.textContent = 'Added!';
+            btn.classList.add('success');
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.classList.remove('success');
+                btn.disabled = false;
+                this._objectUrl = null;
+                this.close();
+            }, 600);
+        } catch (e) {
             btn.textContent = originalText;
-            btn.classList.remove('success');
-
-            // Detach the objectUrl before closing so reset() doesn't revoke it;
-            // the collage still needs it to render the new card's image
-            this._objectUrl = null;
-
-            this.close();
-            if (this.onAdd) this.onAdd(newArtwork);
-        }, 600);
+            btn.disabled = false;
+            console.error(e);
+        }
     }
 }

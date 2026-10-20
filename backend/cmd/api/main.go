@@ -50,6 +50,13 @@ func main() {
 
 	r := gin.Default()
 
+	// CORS: only the configured frontend origin may call the API
+	frontendOrigin := os.Getenv("FRONTEND_ORIGIN")
+	if frontendOrigin == "" {
+		frontendOrigin = "http://localhost:5500"
+	}
+	r.Use(middleware.CORS(frontendOrigin))
+
 	// Serves the entire frontend folder at the root path "/"
 	r.StaticFS("/frontend", http.Dir("../frontend"))
 

@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"golang.org/x/text/unicode/norm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -42,9 +44,11 @@ func (h *ArtworkHandler) CreateArtwork(c *gin.Context) {
 		return
 	}
 
+	id := uuid.New().String()
 	artwork := models.Artwork{
-		ID:          uuid.New().String(),
+		ID:          id,
 		Title:       title,
+		Slug:        slugify(title) + "-" + id[:8],
 		Description: c.PostForm("description"),
 		Category:    c.PostForm("category"),
 		Project:     c.PostForm("project"),
@@ -130,4 +134,25 @@ func (h *ArtworkHandler) UpdateArtwork(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, artwork)
+}
+
+func slugify(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = norm.NFD.String(s)
+	
+	var b strings.Builder
+	var lastDash bool
+	for _, r := range s {
+		if unicode.Is(unicode.Mn, r) {
+			continue
+		}
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(r)
+			lastDash = false
+		} else if !lastDash {
+			b.WriteRune('-')
+			lastDash = true
+		}
+	}
+	return strings.Trim(b.String(), "-")
 }

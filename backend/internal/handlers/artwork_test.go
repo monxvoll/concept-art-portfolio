@@ -27,9 +27,13 @@ type mockArtworkService struct {
 	updateCalled bool
 	updatedID    string
 	updateInput  models.ArtworkUpdate
+
+	// Recorded argument of the last CreateArtwork call
+	created models.Artwork
 }
 
 func (m *mockArtworkService) CreateArtwork(artwork models.Artwork, file *multipart.FileHeader) error {
+	m.created = artwork
 	return m.createErr
 }
 
@@ -137,6 +141,38 @@ func TestArtworkHandler_UpdateArtwork_InvalidJSON(t *testing.T) {
 	}
 	if mockSvc.updateCalled {
 		t.Fatal("service must not be called when body is malformed")
+	}
+}
+
+func TestArtworkHandler_CreateArtwork_GeneratesUniqueSlug(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("title", "  Café Noir: Concept #2!  ")
+	part, _ := writer.CreateFormFile("image", "test.jpg")
+	part.Write([]byte("dummy image content"))
+	writer.Close()
+
+	c.Request = httptest.NewRequest("POST", "/api/artworks", body)
+	c.Request.Header.Set("Content-Type", writer.FormDataContentType())
+
+	mockSvc := &mockArtworkService{}
+	h := handlers.NewArtworkHandler(mockSvc)
+
+	h.CreateArtwork(c)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created, got %d", w.Code)
+	}
+	if len(mockSvc.created.ID) < 8 {
+		t.Fatalf("expected a generated ID, got %q", mockSvc.created.ID)
+	}
+	want := "cafe-noir-concept-2-" + mockSvc.created.ID[:8]
+	if mockSvc.created.Slug != want {
+		t.Fatalf("expected slug %q, got %q", want, mockSvc.created.Slug)
 	}
 }
 
