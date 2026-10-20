@@ -276,7 +276,7 @@ export class Modal {
 
         const isCurrentlyHidden = this.modal.classList.contains('hidden');
 
-        this.updateUI(pushHistory);
+        this.updateUI(pushHistory ? 'push' : 'none');
 
         if (isCurrentlyHidden) {
             document.body.classList.add('modal-open');
@@ -285,8 +285,12 @@ export class Modal {
         this.modal.classList.remove('hidden');
     }
 
-    // Populate the modal's DOM elements with the current artwork data
-    updateUI(pushHistory = true) {
+    /**
+     * Populate the modal's DOM elements with the current artwork data.
+     * @param {'push'|'replace'|'none'} historyMode - 'push' adds a history entry (first open),
+     *   'replace' swaps the current entry (navigating inside the open modal), 'none' leaves history untouched.
+     */
+    updateUI(historyMode = 'push') {
         const currentArt = this.currentProjectGroup[this.currentIndex];
 
         this.image.src = currentArt.image_url;
@@ -333,9 +337,15 @@ export class Modal {
             this.nextBtn.classList.add('hidden');
         }
 
-        if (pushHistory) {
+        if (historyMode !== 'none') {
             const newUrl = window.location.pathname + '?artwork=' + currentArt.slug;
-            window.history.pushState({ slug: currentArt.slug }, '', newUrl);
+            const state = { slug: currentArt.slug };
+            // Replace while navigating inside the modal so "Back" returns straight to the gallery
+            if (historyMode === 'replace') {
+                window.history.replaceState(state, '', newUrl);
+            } else {
+                window.history.pushState(state, '', newUrl);
+            }
         }
 
         if (this.textPane) {
@@ -346,13 +356,13 @@ export class Modal {
     next() {
         if (this.currentProjectGroup.length <= 1) return;
         this.currentIndex = (this.currentIndex + 1) % this.currentProjectGroup.length;
-        this.updateUI();
+        this.updateUI('replace');
     }
 
     prev() {
         if (this.currentProjectGroup.length <= 1) return;
         this.currentIndex = (this.currentIndex - 1 + this.currentProjectGroup.length) % this.currentProjectGroup.length;
-        this.updateUI();
+        this.updateUI('replace');
     }
 
     close(pushHistory = true) {
