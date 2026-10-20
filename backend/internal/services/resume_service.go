@@ -1,45 +1,39 @@
 package services
 
 import (
-        "context"
-        "mime/multipart"
+	"mime/multipart"
 
-        "backend/internal/clients"
+	"backend/internal/clients"
 )
 
 type ResumeService struct {
-        storage clients.StorageClient
-        db      clients.DBClient
+	storage clients.StorageClient
+	db      clients.ResumeDatabaseClient
 }
 
-func NewResumeService(storage clients.StorageClient, db clients.DBClient) *ResumeService {
-        return &ResumeService{
-                storage: storage,
-                db:      db,
-        }
+func NewResumeService(storage clients.StorageClient, db clients.ResumeDatabaseClient) *ResumeService {
+	return &ResumeService{
+		storage: storage,
+		db:      db,
+	}
 }
 
 func (s *ResumeService) UploadResume(file *multipart.FileHeader) (string, error) {
-        url, _, err := s.storage.UploadImage(file)
-        if err != nil {
-                return "", err
-        }
-        
-        ctx := context.Background()
-        // Our DBClient interface doesn't have an Upsert, but Create maps to Set in firestore.go
-        data := map[string]interface{}{"url": url}
-        _ = s.db.Create(ctx, "config", "resume", data) // Ignore error, simple overwrite
-        return url, nil
+	url, _, err := s.storage.UploadImage(file)
+	if err != nil {
+		return "", err
+	}
+
+	if s.db != nil {
+		_ = s.db.SaveResumeURL(url)
+	}
+	return url, nil
 }
 
 func (s *ResumeService) GetResumeURL() (string, error) {
-        ctx := context.Background()
-        doc, err := s.db.Get(ctx, "config", "resume")
-        if err != nil {
-                return "", err
-        }
-        if url, ok := doc["url"].(string); ok {
-                return url, nil
-        }
-        return "", nil
+	if s.db == nil {
+		return "", nil
+	}
+	return s.db.GetResumeURL()
 }
+

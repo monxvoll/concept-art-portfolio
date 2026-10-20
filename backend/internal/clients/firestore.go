@@ -85,3 +85,25 @@ func (f *FirestoreClient) GetArtworkByID(id string) (models.Artwork, error) {
 	err = doc.DataTo(&artwork)
 	return artwork, err
 }
+
+// SaveResumeURL persists the resume download URL to Firestore under config/resume.
+func (f *FirestoreClient) SaveResumeURL(url string) error {
+	_, err := f.client.Collection("config").Doc("resume").Set(f.ctx, map[string]interface{}{
+		"url": url,
+	})
+	return err
+}
+
+// GetResumeURL retrieves the resume download URL from Firestore under config/resume.
+func (f *FirestoreClient) GetResumeURL() (string, error) {
+	doc, err := f.client.Collection("config").Doc("resume").Get(f.ctx)
+	if err != nil {
+		return "", err
+	}
+	data := doc.Data()
+	if url, ok := data["url"].(string); ok {
+		return url, nil
+	}
+	return "", nil
+}
+

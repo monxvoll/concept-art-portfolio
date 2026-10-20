@@ -18,3 +18,9 @@ type DatabaseClient interface {
 	DeleteArtwork(id string) error
 	UpdateArtwork(id string, update models.ArtworkUpdate) error
 }
+
+type ResumeDatabaseClient interface {
+	SaveResumeURL(url string) error
+	GetResumeURL() (string, error)
+}
+
