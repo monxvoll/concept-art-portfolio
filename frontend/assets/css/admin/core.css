@@ -330,4 +330,6 @@ body.admin-mode .add-artwork-btn {
 
 .add-artwork-btn:hover {
     color: #34ce57;
+}body.admin-mode .admin-resume-upload {
+    display: inline-block !important;
 }

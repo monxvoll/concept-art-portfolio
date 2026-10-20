@@ -41,3 +41,21 @@ export async function deleteArtwork(id, token) {
     if (!res.ok) throw new Error('Failed to delete artwork');
     return res.json();
 }
+
+export async function fetchResumeURL() {
+    const res = await fetch(`${API_URL}/resume`);
+    if (!res.ok) throw new Error('Failed to fetch resume URL');
+    return res.json();
+}
+
+export async function uploadResume(formData, token) {
+    const res = await fetch(`${API_URL}/resume`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        body: formData
+    });
+    if (!res.ok) throw new Error('Failed to upload resume');
+    return res.json();
+}

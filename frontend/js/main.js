@@ -1,5 +1,5 @@
 // Entry point - initializes all components and handles page-level routing
-import { fetchArtworks, deleteArtwork, createArtwork } from './services/api.js';
+import { fetchArtworks, deleteArtwork, createArtwork, fetchResumeURL, uploadResume } from './services/api.js';
 import { Collage } from './components/Collage.js';
 import { Modal } from './components/Modal.js';
 import { Admin, auth } from './components/AdminAuth.js';
@@ -111,6 +111,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     const resumeClose = document.getElementById('resume-close');
     const resumeOverlay = document.getElementById('resume-overlay');
     const resumeContent = document.getElementById('resume-content');
+    const resumeDownloadBtn = document.getElementById('resume-download-btn');
+    const resumeUploadFile = document.getElementById('resume-upload-file');
+    const resumeUploadBtn = document.getElementById('resume-upload-btn');
+
+    // Load initial resume URL
+    fetchResumeURL().then(data => {
+        if (data.url) resumeDownloadBtn.href = data.url;
+    }).catch(e => console.error("Failed to load resume URL", e));
+
+    if (resumeUploadBtn && resumeUploadFile) {
+        resumeUploadBtn.addEventListener('click', () => {
+            resumeUploadFile.click();
+        });
+
+        resumeUploadFile.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                if (!auth.currentUser) throw new Error("Not logged in");
+                const token = await auth.currentUser.getIdToken();
+                
+                resumeUploadBtn.textContent = 'Uploading...';
+                resumeUploadBtn.disabled = true;
+
+                const formData = new FormData();
+                formData.append('resume', file);
+                
+                const data = await uploadResume(formData, token);
+                if (data.url) {
+                    resumeDownloadBtn.href = data.url;
+                    alert("Resume updated!");
+                }
+            } catch (err) {
+                console.error("Resume upload failed", err);
+                alert("Upload failed.");
+            } finally {
+                resumeUploadBtn.textContent = 'Upload New PDF';
+                resumeUploadBtn.disabled = false;
+                resumeUploadFile.value = '';
+            }
+        });
+    }
 
     const openResume = (pushHistory = true) => {
         resumeContent.scrollTop = 0;
