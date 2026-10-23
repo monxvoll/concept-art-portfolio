@@ -1,4 +1,6 @@
-const API_URL = "http://localhost:8080/api";
+import { config } from '../config.js';
+
+const API_URL = (config.apiUrl || "http://localhost:8080/api").replace(/\/+$/, '');
 
 export async function fetchArtworks() {
     const res = await fetch(`${API_URL}/artworks`);
