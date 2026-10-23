@@ -15,5 +15,11 @@ export const config = {
         "UI/UX Design"
     ],
     // Keyboard shortcut: Ctrl + Shift + this key opens the admin modal
-    adminShortcut: "ñ"
+    adminShortcut: "ñ",
+    // Firebase Web configuration for Admin Authentication
+    firebase: {
+        apiKey: "AIzaSyDO8jZQ9cq3uJsRpNkbAIK-_x2owuqfD7w",
+        authDomain: "dfcp-portfolio.firebaseapp.com",
+        projectId: "dfcp-portfolio"
+    }
 };
