@@ -1,1 +1,52 @@
+# ============================================
+# Environment & Secret Files
+# ============================================
+.env
+.env.*
+!.env.example
+!env-example.env
+
+# Firebase & Credentials
+*firebase*.json
+*service-account*.json
+credentials.json
+
+# ============================================
+# Go / Backend
+# ============================================
+# Binaries & build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+build/
+
+# Test binaries & coverage
+*.test
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Go workspace
+go.work
+go.work.sum
+
+# ============================================
+# IDEs & System Files
+# ============================================
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ============================================
+# Superpowers / Internal Documentation
+# ============================================
+superpowers/
+.superpowers/
 docs/superpowers/specs/2026-10-06-backend-artwork-api-design.md
+process.md
+
