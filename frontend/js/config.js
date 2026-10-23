@@ -16,6 +16,8 @@ export const config = {
     ],
     // Keyboard shortcut: Ctrl + Shift + this key opens the admin modal
     adminShortcut: "ñ",
+    // Backend API base URL (configurable for development / production)
+    apiUrl: (typeof window !== "undefined" && (window.APP_CONFIG?.apiUrl || window.ENV?.API_URL)) || "http://localhost:8080/api",
     // Firebase Web configuration for Admin Authentication
     firebase: {
         apiKey: "AIzaSyDO8jZQ9cq3uJsRpNkbAIK-_x2owuqfD7w",
