@@ -70,6 +70,23 @@ func TestResumeService_UploadResume_StorageError(t *testing.T) {
 	}
 }
 
+func TestResumeService_UploadResume_DBFailure(t *testing.T) {
+	mockStorage := &mockStorageClient{
+		uploadURL: "https://cloudinary.com/dummy/cv.pdf",
+	}
+	mockDB := &mockResumeDatabaseClient{
+		saveErr: errors.New("db save failed"),
+	}
+
+	svc := services.NewResumeService(mockStorage, mockDB)
+
+	header := &multipart.FileHeader{Filename: "cv.pdf"}
+	_, err := svc.UploadResume(header)
+	if err == nil {
+		t.Fatal("expected error when db fails to save resume url, got nil")
+	}
+}
+
 func TestResumeService_GetResumeURL_Success(t *testing.T) {
 	mockDB := &mockResumeDatabaseClient{
 		getURL: "https://cloudinary.com/dummy/cv.pdf",

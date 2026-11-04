@@ -24,16 +24,12 @@ func (s *ResumeService) UploadResume(file *multipart.FileHeader) (string, error)
 		return "", err
 	}
 
-	if s.db != nil {
-		_ = s.db.SaveResumeURL(url)
+	if err := s.db.SaveResumeURL(url); err != nil {
+		return "", err
 	}
 	return url, nil
 }
 
 func (s *ResumeService) GetResumeURL() (string, error) {
-	if s.db == nil {
-		return "", nil
-	}
 	return s.db.GetResumeURL()
 }
-
