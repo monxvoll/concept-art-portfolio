@@ -92,6 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) {
             console.error("Failed to add artwork", e);
             alert("Failed to add artwork");
+            throw e;
         }
     });
 
