@@ -5,10 +5,12 @@ export class Modal {
     /**
      * @param {HTMLElement} modalElement - The modal's root DOM element
      * @param {Array} artworks - Full artwork list (used to group by project)
+     * @param {Function} onUpdate - Async callback (id, data) that persists edits; must throw on failure
      */
-    constructor(modalElement, artworks = []) {
+    constructor(modalElement, artworks = [], onUpdate = null) {
         this.modal = modalElement;
         this.artworks = artworks;
+        this.onUpdate = onUpdate;
         this.currentProjectGroup = [];
         this.currentIndex = 0;
 
@@ -201,8 +203,8 @@ export class Modal {
             this.description.contentEditable = false;
         });
 
-        // Save edits: validate, update the artwork object, and close
-        const saveEdits = () => {
+        // Save edits: validate, persist via onUpdate, then update the artwork object and close
+        const saveEdits = async () => {
             if (!this.currentProjectGroup || this.currentProjectGroup.length === 0) return;
 
             let hasError = false;
@@ -225,22 +227,43 @@ export class Modal {
             if (hasError) return;
 
             const currentArt = this.currentProjectGroup[this.currentIndex];
-            currentArt.title = titleText;
-            currentArt.category = this.categorySelect ? this.categorySelect.value : this.category.innerText;
-            this.category.innerText = currentArt.category;
-            currentArt.description = descText;
-            currentArt.artwork_date = this.datePicker.value;
-            this.date.textContent = 'Created on ' + currentArt.artwork_date;
+            const payload = {
+                title: titleText,
+                description: descText,
+                category: this.categorySelect ? this.categorySelect.value : this.category.innerText,
+                artwork_date: this.datePicker.value,
+            };
 
             const originalText = this.saveBtn.textContent;
-            this.saveBtn.textContent = 'Saved!';
-            this.saveBtn.classList.add('success');
+            this.saveBtn.textContent = 'Saving...';
+            this.saveBtn.disabled = true;
 
-            setTimeout(() => {
+            try {
+                if (this.onUpdate) await this.onUpdate(currentArt.id, payload);
+
+                // Apply changes locally only after the server confirmed them
+                currentArt.title = payload.title;
+                currentArt.category = payload.category;
+                this.category.innerText = currentArt.category;
+                currentArt.description = payload.description;
+                currentArt.artwork_date = payload.artwork_date;
+                this.date.textContent = 'Created on ' + currentArt.artwork_date;
+
+                this.saveBtn.textContent = 'Saved!';
+                this.saveBtn.classList.add('success');
+
+                setTimeout(() => {
+                    this.saveBtn.textContent = originalText;
+                    this.saveBtn.classList.remove('success');
+                    this.saveBtn.disabled = false;
+                    if (!this.modal.classList.contains('hidden')) this.close();
+                }, 600);
+            } catch (e) {
+                // Keep the modal open so the admin doesn't lose the edits
                 this.saveBtn.textContent = originalText;
-                this.saveBtn.classList.remove('success');
-                this.close();
-            }, 600);
+                this.saveBtn.disabled = false;
+                console.error(e);
+            }
         };
 
         this.saveBtn.addEventListener('click', saveEdits);

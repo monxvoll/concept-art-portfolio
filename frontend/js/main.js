@@ -1,5 +1,5 @@
 // Entry point - initializes all components and handles page-level routing
-import { fetchArtworks, deleteArtwork, createArtwork, fetchResumeURL, uploadResume } from './services/api.js';
+import { fetchArtworks, deleteArtwork, createArtwork, updateArtwork, fetchResumeURL, uploadResume } from './services/api.js';
 import { Collage } from './components/Collage.js';
 import { Modal } from './components/Modal.js';
 import { Admin, auth } from './components/AdminAuth.js';
@@ -78,7 +78,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addArtworkModalEl = document.getElementById('add-artwork-modal');
 
     // Initialize components
-    const modal = new Modal(artworkModalEl, artworks);
+    const modal = new Modal(artworkModalEl, artworks, async (id, data) => {
+        try {
+            if (!auth.currentUser) throw new Error("Not logged in");
+            const token = await auth.currentUser.getIdToken();
+            const updated = await updateArtwork(id, data, token);
+            const art = artworks.find(a => a.id === id);
+            if (art) {
+                Object.assign(art, updated);
+            }
+            artworks.sort(byDateDesc);
+            collage.render();
+        } catch (e) {
+            console.error("Failed to update artwork", e);
+            alert("Failed to update artwork");
+            throw e;
+        }
+    });
     const admin = new Admin(loginModalEl);
     
     const addArtworkModal = new AddArtwork(addArtworkModalEl, async (formData) => {

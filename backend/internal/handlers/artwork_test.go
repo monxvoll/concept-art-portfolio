@@ -99,7 +99,7 @@ func TestArtworkHandler_UpdateArtwork_Success(t *testing.T) {
 }
 
 func TestArtworkHandler_UpdateArtwork_NotFound(t *testing.T) {
-	c, w := newPutContext("missing", `{"title":"New Title"}`)
+	c, w := newPutContext("missing", `{"title":"New Title","description":"Desc","category":"Environment","artwork_date":"2026-01-02"}`)
 
 	grpcErr := status.Error(codes.NotFound, "projects/my-project/databases/(default)/documents/artworks/missing not found")
 	mockSvc := &mockArtworkService{updateErr: grpcErr}
@@ -112,19 +112,33 @@ func TestArtworkHandler_UpdateArtwork_NotFound(t *testing.T) {
 	}
 }
 
-func TestArtworkHandler_UpdateArtwork_MissingTitle(t *testing.T) {
-	c, w := newPutContext("123", `{"title":"   ","description":"desc"}`)
-
-	mockSvc := &mockArtworkService{}
-	h := handlers.NewArtworkHandler(mockSvc)
-
-	h.UpdateArtwork(c)
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 Bad Request, got %d", w.Code)
+func TestArtworkHandler_UpdateArtwork_MissingRequiredFields(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+	}{
+		{"missing title", `{"title":"   ","description":"Desc","category":"Environment","artwork_date":"2026-01-02"}`},
+		{"missing description", `{"title":"New Title","description":"   ","category":"Environment","artwork_date":"2026-01-02"}`},
+		{"missing category", `{"title":"New Title","description":"Desc","artwork_date":"2026-01-02"}`},
+		{"missing artwork_date", `{"title":"New Title","description":"Desc","category":"Environment"}`},
 	}
-	if mockSvc.updateCalled {
-		t.Fatal("service must not be called when title is missing")
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, w := newPutContext("123", tc.body)
+
+			mockSvc := &mockArtworkService{}
+			h := handlers.NewArtworkHandler(mockSvc)
+
+			h.UpdateArtwork(c)
+
+			if w.Code != http.StatusBadRequest {
+				t.Fatalf("expected 400 Bad Request, got %d", w.Code)
+			}
+			if mockSvc.updateCalled {
+				t.Fatal("service must not be called when required fields are missing")
+			}
+		})
 	}
 }
 

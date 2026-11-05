@@ -118,8 +118,12 @@ func (h *ArtworkHandler) UpdateArtwork(c *gin.Context) {
 	}
 
 	update.Title = strings.TrimSpace(update.Title)
-	if update.Title == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "title is required"})
+	update.Description = strings.TrimSpace(update.Description)
+	update.Category = strings.TrimSpace(update.Category)
+	update.ArtworkDate = strings.TrimSpace(update.ArtworkDate)
+
+	if update.Title == "" || update.Description == "" || update.Category == "" || update.ArtworkDate == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "title, description, category, and artwork_date are required"})
 		return
 	}
 
